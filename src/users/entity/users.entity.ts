@@ -12,6 +12,12 @@ export class User {
   @Column()
   password: string;
 
+  @Column({ nullable: true })  
+  resetToken?: string;
+
+  @Column({ type: 'timestamp', nullable: true })  
+  resetTokenExpiry?: Date;
+
   @BeforeInsert()
   async hashPassword() {
     this.password = await bcrypt.hash(this.password, 10);

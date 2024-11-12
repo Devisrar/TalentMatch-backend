@@ -1,10 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreateUserDto } from './dto/create-user.dto';
-import { handleDatabaseError } from '../common/utils/error-handler.util';
 import { User } from './entity/users.entity';
-import { PublicUser } from './interfaces/users.interfaces';
 
 @Injectable()
 export class UsersService {
@@ -13,21 +11,22 @@ export class UsersService {
     private readonly userRepository: Repository<User>,
   ) {}
 
-  async createUser(createUserDto: CreateUserDto): Promise<PublicUser> {
-    try {
-      const user = this.userRepository.create(createUserDto);
-      const savedUser = await this.userRepository.save(user);
-      return { id: savedUser.id, email: savedUser.email };
-    } catch (error) {
-      handleDatabaseError(error, UsersService.name);
-    }
+  async createUser(createUserDto: CreateUserDto): Promise<User> {
+    const user = this.userRepository.create(createUserDto);
+    return this.userRepository.save(user);
   }
 
   async findByEmail(email: string): Promise<User | undefined> {
-    try {
-      return await this.userRepository.findOne({ where: { email } });
-    } catch (error) {
-      handleDatabaseError(error, UsersService.name);
-    }
+    return this.userRepository.findOne({ where: { email } });
+  }
+
+  // Find user by reset token (used for password reset validation)
+  async findByResetToken(resetToken: string): Promise<User | undefined> {
+    return this.userRepository.findOne({ where: { resetToken } });
+  }
+
+  // Save updated user details (e.g., updating reset token or password)
+  async updateUser(user: User): Promise<User> {
+    return this.userRepository.save(user);
   }
 }
