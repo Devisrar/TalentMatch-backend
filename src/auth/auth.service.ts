@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, InternalServerErrorException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service';
@@ -12,20 +12,28 @@ export class AuthService {
   ) {}
 
   async validateUser(email: string, password: string): Promise<any> {
-    const user = await this.usersService.findByEmail(email);
-    if (user && await bcrypt.compare(password, user.password)) {
-      const { password, ...result } = user;
-      return result;
+    try {
+      const user = await this.usersService.findByEmail(email);
+      if (user && await bcrypt.compare(password, user.password)) {
+        const { password, ...result } = user;
+        return result;
+      }
+      throw new UnauthorizedException('Invalid email or password');
+    } catch (error) {
+      throw new InternalServerErrorException('An error occurred while validating the user');
     }
-    return null;
   }
 
   async login(loginUserDto: LoginUserDto) {
-    const user = await this.validateUser(loginUserDto.email, loginUserDto.password);
-    if (!user) {
-      throw new UnauthorizedException('Invalid email or password');
+    try {
+      const user = await this.validateUser(loginUserDto.email, loginUserDto.password);
+      if (!user) {
+        throw new UnauthorizedException('Invalid email or password');
+      }
+      const payload = { email: user.email, sub: user.id };
+      return { access_token: this.jwtService.sign(payload) };
+    } catch (error) {
+      throw new InternalServerErrorException('An error occurred during login');
     }
-    const payload = { email: user.email, sub: user.id };
-    return { access_token: this.jwtService.sign(payload) };
   }
 }
