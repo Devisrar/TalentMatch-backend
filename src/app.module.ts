@@ -41,7 +41,6 @@ import { join } from 'path';
           from: configService.get<string>('EMAIL_SENDER'), 
         },
         template: {
-          // Ensure templates are correctly located regardless of the build environment
           dir: join(process.cwd(), 'src', 'templates'), 
           options: {
             strict: true,
