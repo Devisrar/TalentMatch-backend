@@ -9,7 +9,10 @@ import { join } from 'path';
 
 @Module({
   imports: [
+    // Load .env configuration globally
     ConfigModule.forRoot({ isGlobal: true }),
+
+    // Database configuration using environment variables
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -21,27 +24,30 @@ import { join } from 'path';
         password: configService.get<string>('DATABASE_PASSWORD'),
         database: configService.get<string>('DATABASE_NAME'),
         autoLoadEntities: true,
-        synchronize: true,
+        synchronize: true, // Disable in production
       }),
     }),
+
+    // Mailer configuration using environment variables
     MailerModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         transport: {
-          host: configService.get<string>('EMAIL_HOST'),
-          port: configService.get<number>('EMAIL_PORT'),
-          secure: false,
+          host: configService.get<string>('EMAIL_HOST'), // e.g., smtp.gmail.com
+          port: configService.get<number>('EMAIL_PORT'), // e.g., 587
+          secure: false, // true for 465, false for other ports
           auth: {
-            user: configService.get<string>('EMAIL_USER'),
-            pass: configService.get<string>('EMAIL_PASS'),
+            user: configService.get<string>('EMAIL_USER'), // Email address
+            pass: configService.get<string>('EMAIL_PASS'), // App password
           },
         },
         defaults: {
-          from: configService.get<string>('EMAIL_SENDER'),
+          from: configService.get<string>('EMAIL_SENDER'), // Default sender email
         },
         template: {
-          dir: join(__dirname, 'templates'),
+          // Ensure templates are correctly located regardless of the build environment
+          dir: join(process.cwd(), 'src', 'templates'), // Use absolute path to src/templates
           adapter: new HandlebarsAdapter(),
           options: {
             strict: true,
@@ -49,6 +55,8 @@ import { join } from 'path';
         },
       }),
     }),
+
+    // Import other application modules
     UsersModule,
     AuthModule,
   ],
