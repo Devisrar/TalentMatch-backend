@@ -1,8 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreateUserDto } from './dto/create-user.dto';
 import { User } from './entity/users.entity';
+import { QueryFailedError } from 'typeorm';
 
 @Injectable()
 export class UsersService {
@@ -12,20 +13,25 @@ export class UsersService {
   ) {}
 
   async createUser(createUserDto: CreateUserDto): Promise<User> {
-    const user = this.userRepository.create(createUserDto);
-    return this.userRepository.save(user);
+    try {
+      const user = this.userRepository.create(createUserDto);
+      return await this.userRepository.save(user);
+    } catch (error) {
+      if (error instanceof QueryFailedError && error.message.includes('duplicate key value')) {
+        throw new ConflictException('User with this email already exists');
+      }
+      throw error;
+    }
   }
 
   async findByEmail(email: string): Promise<User | undefined> {
     return this.userRepository.findOne({ where: { email } });
   }
 
-  // Find user by reset token (used for password reset validation)
   async findByResetToken(resetToken: string): Promise<User | undefined> {
     return this.userRepository.findOne({ where: { resetToken } });
   }
 
-  // Save updated user details (e.g., updating reset token or password)
   async updateUser(user: User): Promise<User> {
     return this.userRepository.save(user);
   }
