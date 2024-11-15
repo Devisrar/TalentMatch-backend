@@ -18,18 +18,26 @@ export class AuthService {
 
   async validateUser(email: string, password: string): Promise<{ id: number; email: string } | null> {
     const user = await this.usersService.findByEmail(email);
-    if (user && await bcrypt.compare(password, user.password)) {
-      return { id: user.id, email: user.email };
+
+    // Check if user with the provided email exists
+    if (!user) {
+      throw new NotFoundException('Incorrect email');
     }
-    throw new UnauthorizedException('Invalid email or password');
+
+    // Check if the password matches
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Incorrect password');
+    }
+
+    // Return user info if validation is successful
+    return { id: user.id, email: user.email };
   }
-  
 
   async loginUser(loginUserDto: LoginUserDto) {
+    // This will throw the specific error if email or password is incorrect
     const user = await this.validateUser(loginUserDto.email, loginUserDto.password);
-    if (!user) {
-      throw new UnauthorizedException('Invalid email or password');
-    }
+
     const payload = { email: user.email, sub: user.id };
     return { access_token: this.jwtService.sign(payload) };
   }

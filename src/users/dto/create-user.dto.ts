@@ -1,10 +1,14 @@
-import { IsEmail, IsString, MinLength } from 'class-validator';
+// src/users/dto/create-user.dto.ts
+import { IsEmail, IsString, Matches, MinLength } from 'class-validator';
 
 export class CreateUserDto {
-  @IsEmail()
+  @IsEmail({}, { message: 'Invalid email format. Please enter a valid email address.' })
   email: string;
 
   @IsString()
-  @MinLength(6)
+  @MinLength(8)
+  @Matches(/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*\W).+$/, {
+    message: 'Password too weak. It must contain uppercase, lowercase, number, and special character.',
+  })
   password: string;
 }
